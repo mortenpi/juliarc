@@ -4,6 +4,7 @@ import Compose
 using Gadfly
 using DataFrames
 
+include("experimental.jl")
 
 # Macros to make working in Jupyter a bit more convenient
 export @quiet
