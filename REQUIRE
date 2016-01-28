@@ -1,9 +1,14 @@
 julia 0.4
 
+# Plotting/graphics
 Cairo
 Fontconfig
 Gadfly
 
-DataFrames
-
+# IDE
 IJulia
+
+# Other
+Combinatorics
+Formatting
+DataFrames
