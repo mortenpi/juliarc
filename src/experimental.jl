@@ -66,4 +66,36 @@ macro mutate(ex)
     :( $(esc(obj)) = $obj_type($(args...)) )
 end
 
+
+"""
+    @generic function f(...) ... end
+    @generic f(...) = ...
+
+Turns a normal function definition into a generic function assignment.
+
+Can be used to work around [#265](https://github.com/JuliaLang/julia/issues/265)
+regressions in 0.5 introduced by the fact that every function is now a type.
+"""
+macro generic(e)
+    # Output should be the f = function(x,y) ... end syntax.
+    # Expr(:(=), <name>, <generic_def>)
+    # where:
+    #   <generic_def> = Expr(:function, <args>, <block>)
+    #   <args> = Expr(:tuple, ...)
+    if (e.head === :function || e.head === :(=)) && e.args[1].head === :call
+        println("Genericizing function ... end syntax")
+        # e.args[1] should always be an Expr(:call, <name>, <args>...)
+        @assert isa(e.args[1].args[1], Symbol)
+        function_name = esc(e.args[1].args[1])
+        arguments = e.args[1].args[2:end]
+        # e.args[2] should be a quote block: Expr(:block, ...)
+        @assert e.args[2].head === :block
+        quoteblock = e.args[2]
+        # putting the generic expression together
+        Expr(:(=), function_name, Expr(:function, Expr(:tuple, arguments...), quoteblock))
+    else
+        error("Unable to genericize this expression: $e")
+    end
+end
+
 end # module
