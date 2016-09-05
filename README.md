@@ -7,4 +7,5 @@ machines. `REQUIRE` installs all the necessary packages and running
 Installation:
 ```julia
 Pkg.clone("git@github.com:mortenpi/juliarc.git")
+Pkg.build("juliarc")
 ```
