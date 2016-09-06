@@ -9,6 +9,9 @@ Gadfly
 IJulia
 
 # Other
+Formatting
+ProgressMeter
+
 Combinatorics
 Formatting
 DataFrames
