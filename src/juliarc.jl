@@ -1,5 +1,7 @@
 module juliarc
 
+import Compat
+
 import Compose
 using Gadfly
 using DataFrames
@@ -95,8 +97,68 @@ function getindex{T}(mat::Asymmetric{T}, m,n)
         i = div((m-2)*(m-1), 2)+n
         -mat[i]
     end
-    
+
 end
 
+"""
+    wontreturn(ex)
+
+Checks whether the expression can be used in the RHS of an assignment.
+"""
+function wontreturn(ex::Expr)
+    ex.head === :using && return true
+    retex = last(ex.args)
+    isa(retex, Expr) && retex.head === :using
+end
+wontreturn(::Any) = true
+
+
+# Redirect STDERR
+export @drop_stderr
+
+"""Stores the `STDERR` output redirected by `@drop_stderr`."""
+const dropped_stderr_ref = Ref{Compat.UTF8String}("")
+
+"""
+    dropped_stderr()
+    dropped_stderr(x)
+
+Returns or sets the `dropped_stderr_ref` variable.
+
+To pretty print its contents:
+    juliarc.dropped_stderr() |> println
+"""
+dropped_stderr() = dropped_stderr_ref.x
+dropped_stderr(x) = dropped_stderr_ref.x = x
+
+"""
+    @drop_stderr ex
+
+Redirects the STDERR and stores it in a global variable (accessible via the
+`dropped_stderr` functions).
+
+# Usage
+
+```
+@drop_stderr warn(".")
+@drop_stderr begin
+    using Gadfly
+    warn("More STDERR")
+end
+```
+"""
+macro drop_stderr(ex)
+    ex = wontreturn(ex) ? :($(esc(ex)); ret=nothing) : :(ret = $(esc(ex)))
+    quote
+        _STDERR = STDERR
+        r,w = redirect_stderr()
+        $ex
+        redirect_stderr(_STDERR)
+        close(w)
+        readavailable(r) |> Compat.UTF8String |> dropped_stderr
+        close(r)
+        ret
+    end
+end
 
 end # module
