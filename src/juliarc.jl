@@ -106,9 +106,10 @@ end
 Checks whether the expression can be used in the RHS of an assignment.
 """
 function wontreturn(ex::Expr)
-    ex.head === :using && return true
+    const wontretruns = [:using, :import]
+    ex.head in wontretruns && return true
     retex = last(ex.args)
-    isa(retex, Expr) && retex.head === :using
+    isa(retex, Expr) && retex.head in wontretruns
 end
 wontreturn(::Any) = true
 
