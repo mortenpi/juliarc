@@ -1,4 +1,4 @@
-module experimental
+module Experimental
 
 export @mutate
 

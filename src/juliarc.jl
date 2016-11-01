@@ -2,11 +2,37 @@ module juliarc
 
 import Compat
 
-import Compose
-using Gadfly
-using DataFrames
+const juliarc_src = dirname(@__FILE__)
 
-include("experimental.jl")
+_dynamic_features = Dict(
+    :gadfly => "gadfly.jl",
+    :experimental => "Experimental.jl",
+)
+
+"""
+Loads "dynamic features".
+"""
+function load(feature::Symbol)
+    if !(feature in keys(_dynamic_features))
+        error("$feature not found. Available features: $(keys(_dynamic_features))")
+    end
+    feature_q = Expr(:quote, feature) # so that this could be interpolated as a value
+    eval(:(include(joinpath(juliarc_src, _dynamic_features[$feature_q]))))
+end
+
+"""
+Load all the dynamic features.
+"""
+function load()
+    for feature in keys(_dynamic_features)
+        load(feature)
+    end
+end
+
+
+################################################################################
+# STANDARD SNIPPETS
+# ------------------------------------------------------------------------------
 
 # Macros to make working in Jupyter a bit more convenient
 export @quiet
@@ -23,26 +49,7 @@ macro display(obj)
 end
 
 
-# A small macro to quickly make Gadfly plots non-interactive
-export @noninteractive
-
-type NoninteractivePlot
-    p::Gadfly.Plot
-end
-
-import Compose: writemime
-function writemime(io::IO, m::MIME"text/html", p::NoninteractivePlot)
-    buf = IOBuffer()
-    svg = Gadfly.SVG(buf, Compose.default_graphic_width,
-                Compose.default_graphic_height, false)
-    Gadfly.draw(svg, p.p)
-    writemime(io, m, svg)
-end
-
-macro noninteractive(plot)
-    :( NoninteractivePlot($(esc(plot))) )
-end
-
+using DataFrames
 
 # A better constructor to a DataFrame
 import DataFrames: DataFrame
@@ -65,7 +72,7 @@ function DataFrame(ps::Pair...)
 end
 
 
-# An ansymmetric matrix
+# An antisymmetric matrix
 import Base: length, size, getindex
 
 """
@@ -99,6 +106,7 @@ function getindex{T}(mat::Asymmetric{T}, m,n)
     end
 
 end
+
 
 """
     wontreturn(ex)
