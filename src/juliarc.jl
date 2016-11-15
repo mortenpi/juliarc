@@ -138,6 +138,17 @@ function wontreturn(ex::Expr)
 end
 wontreturn(::Any) = true
 
+"""
+   toplevel_only(ex)
+
+Determines if the expression can only be called in the top level (i.e. has `import` or `using` statements).
+"""
+toplevel_only(ex) = false
+function toplevel_only(ex::Expr)
+    (ex.head == :import || ex.head == :using) && return true
+    ex.head == :block && return any(toplevel_only, ex.args)
+    return false
+end
 
 # Redirect STDOUT and STDERR streams
 export @drop_streams
@@ -179,8 +190,39 @@ end
 ```
 """
 macro drop_streams(ex)
+    if toplevel_only(ex)
+        _drop_streams_toplevel(ex)
+    else
+        _drop_streams(ex)
+    end
+end
+
+function _drop_streams(ex)
+    ex = wontreturn(ex) ? :($(esc(ex)); nothing) : :($(esc(ex)))
+    quote
+        _STDOUT, _STDERR = STDOUT, STDERR
+        out_r, out_w = redirect_stdout()
+        err_r, err_w = redirect_stderr()
+        try
+            $ex
+        finally
+            redirect_stdout(_STDOUT)
+            redirect_stderr(_STDERR)
+            close(out_w)
+            close(err_w)
+            _out = readavailable(out_r) |> Compat.UTF8String
+            _err = readavailable(err_r) |> Compat.UTF8String
+            dropped_streams(_out, _err)
+            close(out_r)
+            close(err_r)
+        end
+    end
+end
+
+function _drop_streams_toplevel(ex)
     ex = wontreturn(ex) ? :($(esc(ex)); ret=nothing) : :(ret = $(esc(ex)))
     quote
+        warn("@drop_streams: toplevel-only expression, streams will not be restored on error.")
         _STDOUT, _STDERR = STDOUT, STDERR
         out_r, out_w = redirect_stdout()
         err_r, err_w = redirect_stderr()
@@ -197,6 +239,7 @@ macro drop_streams(ex)
         ret
     end
 end
+
 
 # An alternative implementation without macros
 type StreamRedirects
