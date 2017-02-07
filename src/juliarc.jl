@@ -146,7 +146,7 @@ Determines if the expression can only be called in the top level (i.e. has `impo
 toplevel_only(ex) = false
 function toplevel_only(ex::Expr)
     (ex.head == :import || ex.head == :using) && return true
-    ex.head == :block && return any(toplevel_only, ex.args)
+    (ex.head == :block || ex.head == :toplevel) && return any(toplevel_only, ex.args)
     return false
 end
 
