@@ -8,8 +8,12 @@ Gadfly
 # IDE
 IJulia
 
+# Math
+LsqFit
+
 # Other
 Formatting
+Pipe
 ProgressMeter
 
 Combinatorics
