@@ -1,5 +1,25 @@
 using DataFrames
 
+# A better constructor to a DataFrame
+import DataFrames: DataFrame
+"""
+`DataFrame(ps::Pair...)` where the pairs are `::Symbol => ::Type`
+
+It constructs an empty `DataFrame`, which has the columns specified by `ps`.
+
+Example
+```
+df = DataFrame(:n => Int, :x =>Float64)
+```
+"""
+function DataFrame(ps::Pair...)
+    DF = DataFrame()
+    for p=ps
+        DF[p.first] = Vector{p.second}()
+    end
+    DF
+end
+
 export @dataframe
 export @dfcol
 
