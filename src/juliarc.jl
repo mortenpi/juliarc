@@ -37,6 +37,7 @@ function load(feature::Symbol)
     end
     feature_q = Expr(:quote, feature) # so that this could be interpolated as a value
     eval(:(include(joinpath(juliarc_src, _dynamic_features[$feature_q]))))
+    nothing
 end
 
 """
