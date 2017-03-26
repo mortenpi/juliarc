@@ -25,6 +25,7 @@ const juliarc_src = dirname(@__FILE__)
 _dynamic_features = Dict(
     :gadfly => "gadfly.jl",
     :experimental => "Experimental.jl",
+    :dataframes => "dataframes.jl",
 )
 
 """
