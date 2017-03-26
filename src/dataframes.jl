@@ -54,28 +54,38 @@ end
 """
 macro dataframe(expr)
     @assert expr.head === :for
-    body = expr.args[2]
 
+    # Fix hygiene for the iterable in the `for x in xs` statement.
+    @assert expr.args[1].head === :(=)
+    expr.args[1].args[1] = esc(expr.args[1].args[1])
+    expr.args[1].args[2] = esc(expr.args[1].args[2])
+
+    # We'll gather the intended columns and their types into these two arrays.
     columns = Symbol[]
     coltypes = Symbol[]
 
-    for arg in body.args
-        # We only care about lines that have @dfcol in the beginning.
-        (arg.head === :macrocall) && (arg.args[1] === Symbol("@dfcol")) || continue
-        assignment = arg.args[2]
+    body = expr.args[2]
+    for (i,arg) in enumerate(body.args)
+        # We only care about lines that have @dfcol in the beginning. If that's not the case
+        # then we'll just escape the line and move on.
+        if (arg.head !== :macrocall) || (arg.args[1] !== Symbol("@dfcol"))
+            body.args[i] = esc(arg)
+            continue
+        end
 
         # Is it a proper `colname :: Type` assignment? If so, extract name and type.
+        assignment = arg.args[2]
         assignment.head == :(=) && isa(assignment.args[1], Expr) && assignment.args[1].head === :(::) || error("Bad assignment.")
-
         @assert isa(assignment.args[1].args[1], Symbol)
         @assert isa(assignment.args[1].args[2], Symbol)
-
-        push!(columns, assignment.args[1].args[1])
+        fieldname = assignment.args[1].args[1]
+        push!(columns, fieldname)
         push!(coltypes, assignment.args[1].args[2])
 
         # Remove the @dfcol call
         arg.head = :(=)
-        arg.args = assignment.args
+        arg.args[1] = fieldname
+        arg.args[2] = esc(Expr(:(=), fieldname, assignment.args[2]))
     end
 
     column_vectors = [Symbol("__$(c)__dfcol__") for c in columns]
