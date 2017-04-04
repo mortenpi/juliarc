@@ -19,5 +19,6 @@ ProgressMeter
 Combinatorics
 Formatting
 DataFrames
+DataFramesMeta
 
 BaseTestNext
